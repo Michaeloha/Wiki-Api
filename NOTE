@@ -1,0 +1,212 @@
+steps
+/////hyper 1
+open a new hyper and run mongod then mongod --dbpath ~/data/db to start the Server
+//////hyper 3 .
+open another shell and run mongo
+show dbs
+use wikiDB
+show collections
+
+///////hyper 2 ///////
+open another shell to navigate to cd desktop
+dir wiki-API
+cd wiki-API
+npm init -y
+npm i body-parser mongoose ejs express
+touch app.js
+/////ls -a // to see all the directory///
+user@Michael-MacBook-Pro-15 Wiki-API % ls -a
+.                       app.js                  package.json
+..                      node_modules
+NOTE                    package-lock.json
+
+
+
+ ////////APP. file//// step 1 app.js
+app.js // starting file
+const mongoose = require("mongoose");
+const bodyParser = require('body-parser');
+const ejs = require("ejs");
+const express = require('express');
+
+const app = express();
+
+app.set('view engine', ejs);
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
+//// TODO:
+app.listen(3000,function(){
+  console.log("Server started on port 3000");
+});
+
+hyper 2
+user@Michael-MacBook-Pro-15 Wiki-API % nodemon app.js
+[nodemon] 2.0.4
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching path(s): *.*
+[nodemon] watching extensions: js,mjs,json
+[nodemon] starting `node app.js`
+Server started on port 3000
+
+
+// step2 app.js ( where you create the monogoose connection, schema and model)
+const mongoose = require("mongoose");
+const bodyParser = require('body-parser');
+const ejs = require("ejs");
+const express = require('express');
+
+const app = express();
+
+app.set('view engine', ejs);
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
+//// TODO:
+
+// SET UP Mongoose connection (step 2)
+mongoose.connect("mongodb://localhost:27017/wikiDB",{useNewUrlParser:true, useUnifiedTopology: true});
+
+
+// step3 create te Schema
+const articleSchema = {
+  title: String,
+  content: String
+};
+
+// step4 create the Model
+
+const Article = mongoose.model("Article",articleSchema);
+
+
+// l-391 Get all Articles
+// step 5 Fetching or get all the articles in our collections
+
+app.get("/articles", function(req,res){
+  Article.find(function(err, foundArticles){
+    // console.log(foundArticles);
+    if(!err){
+        res.send(foundArticles);
+    } else {
+      res.send(err);
+    }
+
+  });
+
+});
+
+
+// L-392 Post a New article (download postman from  getpostman.com)
+// step 6
+
+app.post("/articles", function(req,res){
+  // create an article step 7
+  const newArticle = new Article({
+    title: req.body.title,
+    content:req.body.content
+  });
+  // to know that you can add function in save https://mongoosejs.com/docs/models.html
+  newArticle.save(function(err){
+    if(!err){
+      res.send("Successfully added a new article");
+    } else {
+      res.send ("err");
+    }
+  });
+});
+
+
+
+
+// L-393 DELETE all articles
+// step 8
+app.delete("/articles", function(req,res){
+  Article.deleteMany(function(err){
+    if(!err){
+      res.send("Succesfully deleted all articles");
+    } else{
+      res.send(err);
+    }
+
+
+            REfactory the code using app.route
+    // L-395 -Chained Route Handlers Using Express step 9 deleting the get post and delete above
+    // app.route()method   http://expressjs.com/en/guide/routing.html
+    // app.route("/articles").get().post().delete()
+
+    app.route("/articles")
+    .get(function(req,res){
+      Article.find(function(err, foundArticles){
+        // console.log(foundArticles);
+        if(!err){
+            res.send(foundArticles);
+        } else {
+          res.send(err);
+        }
+
+      });
+
+    })
+    .post(function(req,res){
+      // create an article step 7
+      const newArticle = new Article({
+        title: req.body.title,
+        content:req.body.content
+      });
+      // to know that you can add function in save https://mongoosejs.com/docs/models.html
+      newArticle.save(function(err){
+        if(!err){
+          res.send("Successfully added a new article");
+        } else {
+          res.send ("err");
+        }
+      });
+    })
+    .delete(function(req,res){
+      Article.deleteMany(function(err){
+        if(!err){
+          res.send("Succesfully deleted all articles");
+        } else{
+          res.send(err);
+        }
+
+      });
+    });
+    //  step 10. L-395 GET a specific article
+    //////////////Request targeting a specific article /////////
+    // Route parameters   http://expressjs.com/en/guide/routing.html
+
+    app.route("/articles/:articleTitle")
+    // req.params.articleTitle = "jQuery";
+    .get(function(req,res){
+      Article.findOne({title: req.params.articleTitle},function(err,foundArticle){
+        if(foundArticle){
+          res.send(foundArticle);
+        } else {
+          res.send("No articles matching that title was found");
+        }
+      });
+    })
+
+    // step 12 L-397 Patch a specifc article( just on postman and patch)
+
+    //  step 13 l- 398 delete a specifc article
+    // https://mongoosejs.com/docs/api/model.html#model_Model.deleteOne
+
+    .delete(function(req,res){
+      Article.deleteOne(
+        {title: req.params.articleTitle},
+        function(err,){
+          if(!err){
+            res.send("Succefully deleted article.");
+          } else{
+            res.send(err);
+          }
+        });
+    });
+
+app.listen(3000,function(){
+  console.log("Server started on port 3000");
+});
